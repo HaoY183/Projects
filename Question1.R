@@ -8,7 +8,7 @@ library(fmsb)
 library(leaps)
 library(caret)
 
-covid <- read.csv("C:/Users/74406/Desktop/stat512/covid.csv", stringsAsFactors=TRUE)
+covid <- read.csv("C:/Users/74406/Desktop/covid_project/covid.csv", stringsAsFactors=TRUE)
 model<-lm(infection~Doseone+Series+death, covid)
 avPlots(model)
 new<-subset(covid, select = -c(TotalVac, Booster, Mask))
@@ -39,7 +39,7 @@ qqnorm(res)
 qqline(res)
 bptest(modelNew)
 #advanced diagnostic
-standard = 2*(4/117)
+standard = 2*(4/116)
 infl<-lm.influence(modelNew)$hat
 length(which(infl[] > standard))
 d<-dfbetas(modelNew)
@@ -50,6 +50,7 @@ dff<-dffits(modelNew)
 length(dff[dff>1])
 influencePlot(modelNew)
 plot(lm(newY~Doseone+Series+death, new), pch = 18, col="red", which = c(4))
+qf(0.2,4,112-4)
 VIF(lm(Doseone~Series+death, new))
 VIF(lm(Series~Doseone+death, new))
 VIF(lm(death~Doseone+Series, new))
@@ -70,6 +71,23 @@ boot.ci(modelBR, index = 3, type="perc")
 
 #k-fold
 set.seed(123)
-train.control<-trainControl(method = 'cv', number = 10)
+train.control<-trainControl(method = 'cv', number = 5)
 step.model1<-train(newY~Doseone+Series+death, data = new, method="leapBackward", tuneGrid = data.frame(nvmax = 4), trControl = train.control)
 step.model1$results
+
+#without advanced method
+reduced<-lm(newY~Doseone+death, new)
+full<-lm(newY~Doseone+Series+death, new)
+MSR<-(sum(reduced$residuals^2) - sum(full$residuals^2))/ (reduced$df.residual - full$df.residual)
+MSE<-sum(full$residuals^2) / full$df.residual
+FS = MSR/MSE
+qf(0.95, reduced$df.residual-full$df.residual, full$df.residual)
+p = 1-pf(FS,reduced$df.residual-full$df.residual, full$df.residual)
+FS
+p
+cv = qt(0.975, 112)
+CI_lower = -.010661 - 0.003583*cv
+CI_higher = -.010661 + 0.003583*cv
+CI_higher
+CI_lower
+
